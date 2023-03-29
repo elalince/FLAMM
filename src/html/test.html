@@ -1,0 +1,1751 @@
+<?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
+
+use Catalog\Brand;
+use Catalog\Section;
+
+$strMainID = $this->GetEditAreaId($arResult['ID']);
+$arItemIDs = array(
+'ID' => $strMainID,
+'PICT' => $strMainID.'_pict',
+'DISCOUNT_PICT_ID' => $strMainID.'_dsc_pict',
+'STICKER_ID' => $strMainID.'_stricker',
+'BIG_SLIDER_ID' => $strMainID.'_big_slider',
+'SLIDER_CONT_ID' => $strMainID.'_slider_cont',
+'SLIDER_LIST' => $strMainID.'_slider_list',
+'SLIDER_LEFT' => $strMainID.'_slider_left',
+'SLIDER_RIGHT' => $strMainID.'_slider_right',
+'OLD_PRICE' => $strMainID.'_old_price',
+'PRICE' => $strMainID.'_price',
+'DISCOUNT_PRICE' => $strMainID.'_price_discount',
+'SLIDER_CONT_OF_ID' => $strMainID.'_slider_cont_',
+'SLIDER_LIST_OF_ID' => $strMainID.'_slider_list_',
+'SLIDER_LEFT_OF_ID' => $strMainID.'_slider_left_',
+'SLIDER_RIGHT_OF_ID' => $strMainID.'_slider_right_',
+'QUANTITY' => $strMainID.'_quantity',
+'QUANTITY_DOWN' => $strMainID.'_quant_down',
+'QUANTITY_UP' => $strMainID.'_quant_up',
+'QUANTITY_MEASURE' => $strMainID.'_quant_measure',
+'QUANTITY_LIMIT' => $strMainID.'_quant_limit',
+'BUY_LINK' => $strMainID.'_buy_link',
+'ADD_BASKET_LINK' => $strMainID.'_add_basket_link',
+'COMPARE_LINK' => $strMainID.'_compare_link',
+'PROP' => $strMainID.'_prop_',
+'PROP_DIV' => $strMainID.'_skudiv',
+'DISPLAY_PROP_DIV' => $strMainID.'_sku_prop',
+'OFFER_GROUP' => $strMainID.'_set_group_',
+'ZOOM_DIV' => $strMainID.'_zoom_cont',
+'ZOOM_PICT' => $strMainID.'_zoom_pict'
+);
+$strObName = 'ob'.preg_replace("/[^a-zA-Z0-9_]/i", "x", $strMainID);
+?>
+<?
+//echo $arResult["CITY"];
+//echo "<pre>"; print_r($arResult['PROPERTIES']['STOP_PROMO']['VALUE']); echo "</pre>";
+//if($arResult['PROPERTIES']['VIDEO']['VALUE'] != ""){
+//$APPLICATION->SetPageProperty("title", $arResult['IPROPERTY_VALUES']['ELEMENT_META_TITLE']." video");
+//$APPLICATION->SetTitle($arResult['IPROPERTY_VALUES']['ELEMENT_META_TITLE']." video");
+//}
+
+/*$arFilter = Array("IBLOCK_ID"=>27, "ID" => $arResult['ID']);
+$res = CIBlockElement::GetList(Array("SORT"=>"ASC"), $arFilter, false, false, Array("ID","NAME", "SHOW_COUNTER"));
+while($ar_fields = $res->GetNext())
+{
+echo "У элемента ".$ar_fields[SHOW_COUNTER]." показов<br>";}*/
+
+
+$arFirstOffer = reset($arResult["OFFERS"]);
+$arFirstOffer['MIN_PRICE']['CURRENCY'] = 'RUB';
+
+
+$brand = [
+'NAME' => end(array_filter($arResult['PROPERTIES'], function($p){return $p['CODE'] == 'vendor';}))['VALUE']
+];
+if($brand['NAME'])
+$brand['URL'] = Brand::GetList([], ['NAME' => $brand['NAME'], 'ACTIVE' => 'Y'], false, ['nTopCount' => 1], ['DETAIL_PAGE_URL'])->GetNext()['DETAIL_PAGE_URL'];
+
+$arResult['SECTION']['UF_SEO'] = Section::GetList([], ['ID' => $arResult['SECTION']['ID']], false, ['UF_SEO'])->Fetch()['UF_SEO'];
+?>
+<?if($arResult["PROPERTIES"]["ACTION"]["VALUE"] == 1){
+	$oldPrice = $arResult['MIN_PRICE']['DISCOUNT_VALUE'] * SALE_ITEM_OLD_PRICE_COEFFICIENT;
+	//$oldPrice = $arResult["PROPERTIES"]["MIN_PRICE"]["VALUE"] * SALE_ITEM_OLD_PRICE_COEFFICIENT;
+} elseif($arResult["MIN_PRICE"]["DISCOUNT_DIFF_PERCENT"] > 0){
+$oldPrice = $arResult['MIN_PRICE']['VALUE_VAT'];
+}
+?>
+<?
+if(!$USER->IsAuthorized()){
+$arFavorites = unserialize($_COOKIE["favorites"]);
+}
+else{
+$idUser = $GLOBALS['USER']->GetID();
+$rsUser = CUser::GetByID($idUser);
+$arUser = $rsUser->Fetch();
+$arFavorites = unserialize($arUser['UF_FAVORITES']);
+}
+?>
+<?
+$quantBool = 0;
+foreach($arResult["OFFERS"] as $arItemQuant){
+	if($arItemQuant["CATALOG_QUANTITY"] > 0){
+$quantBool = 1;
+break;
+}
+}
+$inStock = "InStock";
+$outStock = "OutOfStock";
+?>
+<?$APPLICATION->IncludeComponent("coffeediz:schema.org.Product", "brandplus", array(
+"COMPONENT_TEMPLATE" => "brandplus",
+"SHOW" => "Y",
+"NAME" => $arResult["NAME"],
+"BRANDS" => $arResult["PROPERTIES"]["vendor"]["VALUE"],
+"IMG" => "https://prime.gcdn.co".$arResult["MORE_PHOTO"][0]["SRC"],
+"DESCRIPTION" => $arResult["~DETAIL_TEXT"],
+"AGGREGATEOFFER" => "N",
+"SKU" => $arResult["ID"],
+"MPN" => $arResult["PROPERTIES"]["vendorCode"]["VALUE"],
+"URL" => $_SERVER["HTTP_HOST"]."".$arResult["PROPERTIES"]["DETAIL_PAGE_URL"]["VALUE"],
+"PRICE" => $arResult["MIN_PRICE"]["DISCOUNT_VALUE"],
+"PRICECURRENCY" => "RUB",
+"ITEMAVAILABILITY" => "InStock",
+"ITEMCONDITION" => "NewCondition",
+"PAYMENTMETHOD" => array(
+0 => "VISA",
+1 => "MasterCard",
+2 => "ByInvoice",
+3 => "Cash",
+4 => "CheckInAdvance",
+),
+"PARAM_RATING_SHOW" => "N"
+),
+false,
+array(
+"ACTIVE_COMPONENT" => "N"
+)
+);?>
+<?$APPLICATION->IncludeComponent("coffeediz:Open.Graph", "templatefb", Array(
+"DESCRIPTION" => $arResult["~DETAIL_TEXT"],	// Описание
+"DESCRIPTION_LIMIT" => "200",	// Максимальное количество симфолов в Описании
+"IMAGES" => array(	// ссылки на изображения
+0 => "https://st.intim-toys-shop.ru".$arResult["MORE_PHOTO"][0]["SRC"],
+),
+"LOCALE" => "ru_RU",	// Язык_Страна
+"SITE_NAME" => "Секс шоп INTIM TOYS",	// Название сайта
+"TITLE" => $arResult["NAME"],	// Заголовок (название объекта)
+"TITLE_LIMIT" => "70",	// Максимальное количество симфолов в Заголовке
+"TYPE" => "website",	// Тип основного объекта
+"URL" => "https://".$_SERVER["HTTP_HOST"].''.$arResult["PROPERTIES"]["DETAIL_PAGE_URL"]["VALUE"],	// URL объекта
+"USE_TWITTER" => "Y",	// Использовать Twitter
+"VIDEO" => "",	// Видео
+"VIDEO_HEIGHT" => "",	// высота видео
+"VIDEO_WIDTH" => "",	// ширина видео
+"COMPONENT_TEMPLATE" => ".default",
+"TWITTER_CARD_TYPE" => "summary",	// Тип карточки
+"TWITTER_CREATOR" => "",	// Twitter Автора контента
+"TWITTER_SITE" => "",	// Twitter сайта
+),
+false
+);?>
+
+<div class="bx_item_detail posRel" id="<? echo $arItemIDs['ID']; ?>">
+  <?if($arResult["PROPERTIES"]["ACTION"]["VALUE"] == 1):?>
+  <div class="action posAbs">-<?=SALE_ITEM_OLD_PRICE_PERCENT?>%</div>
+  <?elseif($arResult["MIN_PRICE"]["DISCOUNT_DIFF_PERCENT"] > 0):?>
+  <div class="action posAbs">-<?=$arResult["MIN_PRICE"]["DISCOUNT_DIFF_PERCENT"]?>%</div>
+  <?endif?>
+
+  <?/*$city = get_city_by_ip($_SERVER["REMOTE_ADDR"]);*/?>
+  <?//$price=$arFirstOffer['MIN_PRICE']['CURRENCY']?>
+  <?$price=$arResult["MIN_PRICE"]["VALUE"]?>
+  <?
+	if(($_SERVER["HTTP_HOST"]=='www.intim-toys-shop.ru' || $_SERVER["HTTP_HOST"]=='spb.intim-toys-shop.ru') && ($price>=999)):
+  //if(($arResult["CITY"]=='Москва' || $arResult["CITY"]=='Санкт-Петербург') && ($price>=999)):?>
+  <div class="free_shipping posAbs"><div class="shipping">бесплатная<br/ >доставка</div></div>
+  <?elseif($price>=4000):?>
+  <div class="free_shipping posAbs"><div class="shipping">бесплатная<br/ >доставка</div></div>
+  <?endif?>
+
+  <div class="bx_item_container">
+    <div class="bx_lt">
+      <div class="bx_item_slider" id="<? echo $arItemIDs['BIG_SLIDER_ID']; ?>">
+        <a rel="prettyPhoto[pp_gal]" href="<?=CDN_DOMAIN.CPL::getResizeImage($arResult['MORE_PHOTO'][0]['SRC'], 1200, 1200, false)?>" title="<?=$arResult['NAME']?>">
+          <?$itemPic=CPL::imageResize($arResult['MORE_PHOTO'][0]['SRC'], 400, 560, true);?>
+          <div class="detail_pic_container"><img src="<?=CDN_DOMAIN.$itemPic["PATH"]?>" id="<? echo $arItemIDs['PICT']; ?>" alt="<?=$arResult["NAME"]?> - фото, цены" title="<?=$arResult["NAME"]?>" class="detail_pic" /></div>
+        </a>
+        <?
+					if ('Y' == $arParams['SHOW_DISCOUNT_PERCENT'])
+					{
+						?>
+        <div class="bx_stick_disc" id="<? echo $arItemIDs['DISCOUNT_PICT_ID'] ?>" style="display: none;"></div>
+        <?
+					}
+					if ($arResult['LABEL'])
+					{
+						?>
+        <div class="bx_stick new" id="<? echo $arItemIDs['STICKER_ID'] ?>"><? echo $arResult['LABEL_VALUE']; ?></div>
+        <?
+					}
+					?>
+
+        <?
+					if ($arResult['SHOW_SLIDER'])
+					{
+						if (isset($arResult['OFFERS']) || !empty($arResult['OFFERS']))
+						{
+							if (5 < $arResult['MORE_PHOTO_COUNT'])
+							{
+								$strClass = 'bx_slider_conteiner full';
+								$strOneWidth = (100/$arResult['MORE_PHOTO_COUNT']).'%';
+								$strWidth = (20*$arResult['MORE_PHOTO_COUNT']).'%';
+								$strSlideStyle = '';
+							}
+							else
+							{
+								$strClass = 'bx_slider_conteiner';
+								$strOneWidth = '20%';
+								$strWidth = '100%';
+								$strSlideStyle = 'display: none;';
+							}
+							?>
+        <div class="<? echo $strClass; ?>" id="<? echo $arItemIDs['SLIDER_CONT_ID']; ?>">
+          <div class="bx_slider_scroller_container">
+            <div class="bx_slide">
+              <ul class="gallery clearfix">
+                <?foreach ($arResult['MORE_PHOTO'] as  $key => $arOnePhoto):
+                if($key == 0) continue;?>
+                <li>
+                  <a rel="prettyPhoto[pp_gal]" href="<?=CDN_DOMAIN.CPL::getResizeImage($arOnePhoto['SRC'], 1200, 1200, false)?>" title="<?=$arResult['NAME']?>">
+                    <?$prewPic=CPL::imageResize($arOnePhoto['SRC'], 90, 90, false);?>
+                    <img src="<?=CDN_DOMAIN.$prewPic["PATH"]?>" alt="<?=$arResult["NAME"]?>" title="<?=$arResult["NAME"]?>" />
+                  </a>
+                </li>
+                <?endforeach?>
+              </ul>
+            </div>
+            <div class="bx_slide_left" id="<? echo $arItemIDs['SLIDER_LEFT']; ?>" style="<? echo $strSlideStyle; ?>"></div>
+            <div class="bx_slide_right" id="<? echo $arItemIDs['SLIDER_RIGHT']; ?>" style="<? echo $strSlideStyle; ?>"></div>
+          </div>
+        </div>
+        <?
+						}
+						else
+						{
+							foreach ($arResult['OFFERS'] as $key => $arOneOffer)
+        {
+        if (!isset($arOneOffer['MORE_PHOTO_COUNT']) || 0 >= $arOneOffer['MORE_PHOTO_COUNT'])
+        continue;
+        $strVisible = ($key == $arResult['OFFERS_SELECTED'] ? '' : 'none');
+        if (5 < $arOneOffer['MORE_PHOTO_COUNT'])
+        {
+        $strClass = 'bx_slider_conteiner full';
+        $strOneWidth = (100/$arOneOffer['MORE_PHOTO_COUNT']).'%';
+        $strWidth = (20*$arOneOffer['MORE_PHOTO_COUNT']).'%';
+        $strSlideStyle = '';
+        }
+        else
+        {
+        $strClass = 'bx_slider_conteiner';
+        $strOneWidth = '20%';
+        $strWidth = '100%';
+        $strSlideStyle = 'display: none;';
+        }
+        ?>
+        <div class="<? echo $strClass; ?>" id="<? echo $arItemIDs['SLIDER_CONT_OF_ID'].$arOneOffer['ID']; ?>" style="display: <? echo $strVisible; ?>;">
+          <div class="bx_slider_scroller_container">
+            <div class="bx_slide">
+              <ul style="width: <? echo $strWidth; ?>;" id="<? echo $arItemIDs['SLIDER_LIST_OF_ID'].$arOneOffer['ID']; ?>">
+                <?
+												foreach ($arOneOffer['MORE_PHOTO'] as &$arOnePhoto)
+												{
+													?>
+
+                <li data-value="<? echo $arOneOffer['ID'].'_'.$arOnePhoto['ID']; ?>" style="width: <? echo $strOneWidth; ?>; padding-top: <? echo $strOneWidth; ?>"><a href="javascript:void(0)"><span style="background-image:url('<?=CDN_DOMAIN.$arOnePhoto['SRC']; ?>');"></span></a></li>
+
+                <?
+												}
+												unset($arOnePhoto);
+												?>
+              </ul>
+            </div>
+            <div class="bx_slide_left" id="<? echo $arItemIDs['SLIDER_LEFT_OF_ID'].$arOneOffer['ID'] ?>" style="<? echo $strSlideStyle; ?>" data-value="<? echo $arOneOffer['ID']; ?>"></div>
+            <div class="bx_slide_right" id="<? echo $arItemIDs['SLIDER_RIGHT_OF_ID'].$arOneOffer['ID'] ?>" style="<? echo $strSlideStyle; ?>" data-value="<? echo $arOneOffer['ID']; ?>"></div>
+          </div>
+        </div>
+        <?
+							}
+						}
+					}
+					?>
+      </div>
+    </div>
+
+    <div class="bx_rt" data-item-id="<?=$arResult['ID']?>">
+
+      <div id="add2basket_error_form" style="display:none;">
+        <div id="popup_form_detail" style="padding: 30px;width: 300px;margin: 20% auto;font-size:16px;color: #777777; text-align:center;">
+          <a class="close_backcall_detail"></a>
+          <div id="form_title_to_cart" style="margin-bottom:15px;">ДЛЯ ДОБАВЛЕНИЯ В КОРЗИНУ</div>
+          <div id="add2basket_error_div" style="font-family:Arial;font-size:12px; text-transform:uppercase;"></div>
+        </div>
+      </div>
+      <noindex>
+        <div id="add2basket_success_form" style="display:none;">
+          <div id="popup_form_detail" style="padding: 30px;width: 300px;margin: 20% auto;font-size:16px;color: #777777; text-align:center;"  class="popup_formore_produts_slider">
+            <a class="close_success_detail"></a>
+            <div id="add2basket_error_div" style="font-family:Arial;font-size:12px; text-transform:uppercase;">
+              <div class="more_produts_slider_title">Товар добавлен в корзину</div>
+              <a id="continue_shopping">Продолжить покупки</a> или <a href="<?=$arParams['BASKET_URL']?>" rel="nofollow">Перейти в корзину</a>
+            </div>
+            <div class="more_produts_slider">
+              <br/><div class="detail_info_mess"><p class="h4">Не забыли купить?</p>
+              <?foreach($arResult["RECOM_URL"] as $arItemUrl):?>
+              <a href="<?=$arItemUrl[1]?>/" target="_blank" title="<?=$arItemUrl[0]?>">   <?=$arItemUrl[0]?></a><br/><br/>
+              <?endforeach;?><br/></div>
+            </div>
+          </div>
+        </div>
+      </noindex>
+
+
+
+      <div class="item_price">
+
+        <?if($arItemIDs["PROPERTIES"]["ACTION"]["VALUE"] == 1 || $arResult["MIN_PRICE"]["DISCOUNT_DIFF_PERCENT"] > 0):?>
+        <? $boolDiscountShow = (0 < $arResult['MIN_PRICE']['DISCOUNT_DIFF']);
+						//$boolDiscountShow = 1;?>
+        <!--						<del>-->
+        <!--							<span class="amount old_price_container">--><?//=SaleFormatCurrency($arFirstOffer['MIN_PRICE']['DISCOUNT_VALUE']*SALE_ITEM_OLD_PRICE_COEFFICIENT, $arFirstOffer['MIN_PRICE']['CURRENCY'])?><!--</span>-->
+        <!--						</del>-->
+        <?endif?>
+        <?if($arResult["PROPERTIES"]["ACTION"]["VALUE"] == 1 || $boolDiscountShow):?>
+        <?$boolAction = 1;?>
+        <?endif?>
+
+        <?/*<div class="item_old_price" id="<? echo $arItemIDs['OLD_PRICE']; ?>" style="display: <? echo ($boolDiscountShow ? '' : 'none'); ?>"><? echo ($boolDiscountShow ? $arResult['MIN_PRICE']['PRINT_VALUE'] : ''); ?></div>*/?>
+      <div class="item_old_price" id="<? echo $arItemIDs['OLD_PRICE']; ?>" style="display: <? echo ($boolAction ? '' : 'none'); ?>"><?=SaleFormatCurrency($oldPrice, $arFirstOffer['MIN_PRICE']['CURRENCY'])?></div>
+      <?$price_change=$arResult['PROPERTIES']['MIN_PRICE']['VALUE']/100*10+$arResult['PROPERTIES']['MIN_PRICE']['VALUE'];?>
+      <div class="item_current_price" id="<? echo $arItemIDs['PRICE']; ?>"><? echo number_format( $price_change, 0, '.', ' ' );?> руб</div>
+      <script>
+        setTimeout(function(){
+          div.innerHTML='<? echo $arResult['MIN_PRICE']['PRINT_DISCOUNT_VALUE']; ?>';
+        }, 1500);
+        var div = document.getElementById('<? echo $arItemIDs['PRICE']; ?>'); text( div.innerHTML );
+      </script>
+      <?/*<div class="item_economy_price" id="<? echo $arItemIDs['DISCOUNT_PRICE']; ?>" style="display: <? echo ($boolDiscountShow ? '' : 'none'); ?>"><? echo ($boolDiscountShow ? GetMessage('ECONOMY_INFO', array('#ECONOMY#' => $arResult['MIN_PRICE']['PRINT_DISCOUNT_DIFF'])) : ''); ?></div>*/?>
+    <p style="font-size: 13px">
+      <b style="color: #000;">
+        <?if($arResult['PROPERTIES'][\Catalog\Item::PROP_CODE_STOP_PROMO]['VALUE']):?>
+        Скидка 5%
+        <?else:?>
+        <?=SaleFormatCurrency($arResult['MIN_PRICE']['DISCOUNT_VALUE']/100*95, 'RUB')?>
+        <?endif?>
+      </b> при онлайн-оплате картой на сайте.
+    </p>
+  </div>
+  <?if(($_SERVER["HTTP_HOST"]=='www.intim-toys-shop.ru' || $_SERVER["HTTP_HOST"]=='spb.intim-toys-shop.ru') && ($price>=999)):?>
+  <p style="color: #00b523; font-size: 13px; font-weight: bold">&#10003; Бесплатная доставка</p>
+  <?elseif($price>=4000):?>
+  <p style="color: #00b523; font-size: 13px; font-weight: bold">&#10003; Бесплатная доставка</p>
+  <?endif?>
+  <?if ($arResult["PROPERTIES"]["REMCHECK"]["VALUE"] == Y)
+{?>
+  <p style="color: #00b523; font-size: 13px; font-weight: bold">&#10003; В наличии</p>
+  <?}?>
+
+  <?/*if($arResult["OFFERS_SIZES"] && $arResult['OFFERS'][0]["CATALOG_QUANTITY"] > 0):*/?>
+  <?/*if(count($arResult["OFFERS_SIZES"]) > 0):?>
+  <div class="item_info_section">
+    <select id="offer_sizes">
+      <?foreach($arResult["OFFERS_SIZES"] as $elemOffer):?>
+      <option value=<?=$elemOffer["id"]?>><?=$elemOffer["size"]?></option>
+      <?endforeach?>
+    </select>
+  </div>
+  <?endif*/?>
+
+
+  <?//Определяем доступность для выбора размера и цвета (в зависимости от $_REQUEST и доступности для продажи)
+				//**************************************************************************************************
+				/*$arSizes = array();
+				$arAllColors = array();
+				foreach($arResult['OFFERS'] as $arOffer)
+				{
+					$size = $arOffer["PROPERTIES"]["size"]["VALUE"];
+					$color = $arOffer["PROPERTIES"]["color"]["VALUE"];
+					$arSizes[$size]["COLORS"][$color] = $arOffer["ID"];
+					$arAllColors[$color]["COLOR"] = $color;
+					//$weightSize = array_search($size, $arResult['SIZE_WEIGHT']);
+					//$arSizes[$size]['SIZE_WEIGHT'] = $weightSize;
+				}
+
+				//Проставляем доступность размеров (зависит от цвета в реквесте если он задан)
+				foreach($arSizes as $size => $arSize)
+  {
+  $bCanBy = false;
+  foreach($arSize["COLORS"] as $color => $arColor)
+  {
+  if(is_array($_REQUEST["COLOR"]) && !in_array($color,$_REQUEST["COLOR"]))
+  continue;
+  if($arColor["CAN_BUY"] == true)
+  {
+  $bCanBy = true;
+  }
+  }
+
+  if($bCanBy)
+  $arSizes[$size]["CAN_BUY"] = true;
+  }
+
+  //Проставляем доступность цветов В зависимости от наличия
+  foreach($arSizes as $size => $arSize)
+  {
+
+  if(!$arSize["CAN_BUY"])
+  {
+  //В случае если есть цвет, но нет размера мы пропускам проверку доступности этого цвета у размера
+  if(
+  !(is_array($_REQUEST["COLOR"]) && count($_REQUEST["COLOR"]) > 0)  //Есть цвет
+  && (is_array($_REQUEST["SIZE"]) && count($_REQUEST["SIZE"]) > 0)  //Нет размера
+  )
+  continue;
+  }
+
+  if(is_array($_REQUEST["SIZE"]) && !in_array($size, $_REQUEST["SIZE"]))
+  continue;
+
+  foreach($arSize["COLORS"] as $color => $arColor)
+  {
+  if($arColor["CAN_BUY"])
+  {
+  $arAllColors[$color]["CAN_BUY"] = true;
+  }
+  }
+  }
+
+  //Корректируем доступность цветов, в зависимости от выбранных размеров
+  if(is_array($_REQUEST["SIZE"]) && count($_REQUEST["SIZE"]) > 0)
+  {
+  foreach($arAllColors as $color => $arColor)
+  {
+  if(!$arColor["CAN_BUY"])
+  continue;
+  foreach($_REQUEST["SIZE"] as $size)
+  {
+  if(!$arSizes[$size]["COLORS"][$color]["CAN_BUY"])
+  {
+  $arAllColors[$color]["CAN_BUY"] = false;
+  }
+  }
+  }
+  }
+  ksort($arSizes);
+  ksort($arAllColors);
+  CPL::pr($arSizes);
+  CPL::pr($arAllColors);
+  */?>
+
+  <?/*<form id="detailSizeColorForm">*/?>
+  <?/*if(count($arResult["OFFERS_SIZES"]) > 0):?>
+  Выберите размер:
+  <div class="item_info_section">
+    <div id="offer_sizes">
+      <?foreach($arSizes as $size => $arSize):?>
+      <input type="radio" class="size sizeCheckBox" name="SIZE[]" value="<?=$size;?>" id="<?=$size;?>" <?if(in_array($size, $_REQUEST['SIZE'])):?> checked="checked"<?endif;?>>
+      <?endforeach?>
+    </div>
+  </div>
+  <br/>
+  <br/>
+  <?endif*/?>
+  <div class="tab_detail_main">
+    <?if ( count($arResult["SIZES"]) > 0 ) {?>
+    <p>Выберите размер</p>
+    <div class="sizes_tab">
+      <?foreach ( $arResult["SIZES"] as $sizeName => $arSize ):?>
+      <a size="<?=$sizeName?>" href="#" offers="<?$c = 0;foreach ( $arSize["OFFERS"] as $offerId ) {$c++;?><?=$offerId.($c < count($arSize["OFFERS"]) ? " " : "")?><?}?>"
+      less="<?$c = 0;foreach ( $arSize["COLORS_LESS"] as $offerId ) {$c++;?><?=$offerId.($c < count($arSize["COLORS_LESS"]) ? " " : "")?><?}?>"
+      class="sizes posRel disp_bl<?if($arSize["LESS"]){?> less<?}?><?if($arSize["SELECTED"]){?> selected<?}?>"><?=$sizeName?>
+
+      </a>
+
+      <?endforeach?>
+      <div class="clear"></div>
+    </div>
+    <div class="clear"></div>
+    <?}?>
+
+
+    <?if ( count($arResult["COLORS"]) > 0 ) {?>
+    <p>Выберите цвет</p>
+    <div class="colors_tab">
+      <?foreach ( $arResult["COLORS"] as $colorName => $arColor ) {?>
+      <a
+              href="#"
+              color="<?=$colorName?>"
+              offers="<?$c = 0;foreach ( $arColor["OFFERS"] as $offerId ) {$c++;?><?=$offerId.($c < count($arColor["OFFERS"]) ? " " : "")?><?}?>"
+      less="<?$c = 0;foreach ( $arColor["SIZES_LESS"] as $offerId ) {$c++;?><?=$offerId.($c < count($arColor["SIZES_LESS"]) ? " " : "")?><?}?>"
+      class="colors disp_bl fl_l posRel<?if($arColor["LESS"]){?> less<?}?><?if($arColor["SELECTED"]){?> selected<?}?>"
+      >
+      <?=$colorName?>
+      <?/*if($arColor["NAME"] == "Мультиколор"):?>
+      <div class="color-block multicolor"></div>
+      <?else:?>
+      <div class="color-block" style="background: #<?=$arColor["CODE"]?>;"></div>
+    <?endif*/?>
+    </a>
+
+    <?}?>
+  </div>
+  <div class="clear"></div>
+  <?}?>
+</div>
+<?/*if(count($arResult["OFFERS_COLORS"]) > 0):?>
+Выберите цвет:
+<div class="item_info_section">
+  <div id="offer_colors">
+    <?foreach($arAllColors as $color => $arColor):?>
+    <input type="radio" class="color radioColorInput" name="COLOR[]" id="<?=$color?>" value="<?=$color?>" <?if(in_array($color, $_REQUEST['COLOR'])):?> checked="checked"<?endif;?>/>
+    <?endforeach?>
+  </div>
+</div>
+<br/>
+<br/>
+<?endif?>
+<input type="hidden" name="AJAX" value="Y" />
+<input type="hidden" name="COLOR_SIZE" value="Y" />*/?>
+<?/*</form>*/?>
+
+<?/*
+				$key = $arResult['PROPERTIES']['vendor']['VALUE'];
+				$brand_id = htmlspecialcharsbx(abs(crc32($key)));
+				?>
+<p>
+  <a href="/catalog/?set_filter=y&arCatalogSectionFilter_159_<?=$brand_id;?>=Y" target="_blank" class="brend_link">Ссылка на бренд</a>
+</p>*/?>
+<?
+				/*if (!empty($arResult['DISPLAY_PROPERTIES']) || $arResult['SHOW_OFFERS_PROPS'])
+				{
+				?>
+<div class="item_info_section">
+  <?
+					if (!empty($arResult['DISPLAY_PROPERTIES']))
+					{
+				?>
+  <ul>
+    <?
+						foreach ($arResult['DISPLAY_PROPERTIES'] as &$arOneProp)
+						{
+				?>
+    <li><strong><? echo $arOneProp['NAME']; ?></strong> <?
+							echo (
+								is_array($arOneProp['DISPLAY_VALUE'])
+								? implode(' / ', $arOneProp['DISPLAY_VALUE'])
+								: $arOneProp['DISPLAY_VALUE']
+							);
+				?>
+    </li>
+    <?
+						}
+						unset($arOneProp);
+				?>
+  </ul>
+  <?
+					}
+					if ($arResult['SHOW_OFFERS_PROPS'])
+					{
+				?>
+  <ul id="<? echo $arItemIDs['DISPLAY_PROP_DIV'] ?>" style="display: none;"></ul>
+  <?
+					}
+				?>
+</div>
+<?
+				}*/
+				if ('' != $arResult['PREVIEW_TEXT'])
+				{
+					?>
+<div class="item_info_section">
+  <?
+						echo ('html' == $arResult['PREVIEW_TEXT_TYPE'] ? $arResult['PREVIEW_TEXT'] : '<p>'.$arResult['PREVIEW_TEXT'].'</p>');
+  ?>
+</div>
+<?
+				}
+				if (isset($arResult['OFFERS']) && !empty($arResult['OFFERS']) && !empty($arResult['OFFERS_PROP']))
+				{
+					$arSkuProps = array();
+					?>
+<div class="item_info_section" style="padding-right:150px;" id="<? echo $arItemIDs['PROP_DIV']; ?>">
+
+  <?
+						foreach ($arResult['SKU_PROPS'] as &$arProp)
+						{
+							if (!isset($arResult['OFFERS_PROP'][$arProp['CODE']]))
+								continue;
+							$arSkuProps[] = array(
+								'ID' => $arProp['ID'],
+  'TYPE' => $arProp['PROPERTY_TYPE'],
+  'VALUES_COUNT' => $arProp['VALUES_COUNT']
+  );
+  if ('L' == $arProp['PROPERTY_TYPE'])
+  {
+  if (5 < $arProp['VALUES_COUNT'])
+  {
+  $strClass = 'bx_item_detail_size full';
+  $strOneWidth = (100/$arProp['VALUES_COUNT']).'%';
+  $strWidth = (20*$arProp['VALUES_COUNT']).'%';
+  $strSlideStyle = '';
+  }
+  else
+  {
+  $strClass = 'bx_item_detail_size';
+  $strOneWidth = '20%';
+  $strWidth = '100%';
+  $strSlideStyle = 'display: none;';
+  }
+  ?>
+  <div class="<? echo $strClass; ?>" id="<? echo $arItemIDs['PROP'].$arProp['ID']; ?>_cont">
+    <span class="bx_item_section_name_gray"><? echo htmlspecialcharsex($arProp['NAME']); ?></span>
+    <div class="bx_size_scroller_container"><div class="bx_size">
+      <ul id="<? echo $arItemIDs['PROP'].$arProp['ID']; ?>_list" style="width: <? echo $strWidth; ?>;margin-left:0%;">
+        <?
+												foreach ($arProp['VALUES'] as $arOneValue)
+												{
+													?>
+        <li
+                data-treevalue="<? echo $arProp['ID'].'_'.$arOneValue['ID']; ?>"
+                data-onevalue="<? echo $arOneValue['ID']; ?>"
+                style="width: <? echo $strOneWidth; ?>;"
+        ><span></span>
+          <a href="javascript:void(0)"><? echo htmlspecialcharsex($arOneValue['NAME']); ?></a></li>
+        <?
+												}
+												?>
+      </ul>
+    </div>
+      <div class="bx_slide_left" style="<? echo $strSlideStyle; ?>" id="<? echo $arItemIDs['PROP'].$arProp['ID']; ?>_left" data-treevalue="<? echo $arProp['ID']; ?>"></div>
+      <div class="bx_slide_right" style="<? echo $strSlideStyle; ?>" id="<? echo $arItemIDs['PROP'].$arProp['ID']; ?>_right" data-treevalue="<? echo $arProp['ID']; ?>"></div>
+    </div>
+  </div>
+  <?
+							}
+							elseif ('E' == $arProp['PROPERTY_TYPE'])
+							{
+								if (5 < $arProp['VALUES_COUNT'])
+								{
+									$strClass = 'bx_item_detail_scu full';
+									$strOneWidth = (100/$arProp['VALUES_COUNT']).'%';
+									$strWidth = (20*$arProp['VALUES_COUNT']).'%';
+									$strSlideStyle = '';
+								}
+								else
+								{
+									$strClass = 'bx_item_detail_scu';
+									$strOneWidth = '20%';
+									$strWidth = '100%';
+									$strSlideStyle = 'display: none;';
+								}
+								?>
+  <div class="<? echo $strClass; ?>" id="<? echo $arItemIDs['PROP'].$arProp['ID']; ?>_cont">
+    <span class="bx_item_section_name_gray"><? echo htmlspecialcharsex($arProp['NAME']); ?></span>
+    <div class="bx_scu_scroller_container"><div class="bx_scu">
+      <ul id="<? echo $arItemIDs['PROP'].$arProp['ID']; ?>_list" style="width: <? echo $strWidth; ?>;margin-left:0%;">
+        <?
+												foreach ($arProp['VALUES'] as $arOneValue)
+												{
+													?>
+        <li
+                data-treevalue="<? echo $arProp['ID'].'_'.$arOneValue['ID'] ?>"
+                data-onevalue="<? echo $arOneValue['ID']; ?>"
+                style="width: <? echo $strOneWidth; ?>; padding-top: <? echo $strOneWidth; ?>;"
+        ><span></span>
+          <a href="javascript:void(0)"><span style="background-image:url('<? echo $arOneValue['PICT']['SRC']; ?>');"></span></a></li>
+        <?
+												}
+												?>
+      </ul>
+    </div>
+      <div class="bx_slide_left" style="<? echo $strSlideStyle; ?>" id="<? echo $arItemIDs['PROP'].$arProp['ID']; ?>_left" data-treevalue="<? echo $arProp['ID']; ?>"></div>
+      <div class="bx_slide_right" style="<? echo $strSlideStyle; ?>" id="<? echo $arItemIDs['PROP'].$arProp['ID']; ?>_right" data-treevalue="<? echo $arProp['ID']; ?>"></div>
+    </div>
+  </div>
+  <?
+							}
+						}
+						unset($arProp);
+						?>
+</div>
+<?
+				}
+				?>
+<div class="item_info_section">
+  <?
+					//if ((isset($arResult['OFFERS']) && !empty($arResult['OFFERS'])) || $arResult["CAN_BUY"])
+					//if($arResult['OFFERS'][0]["CATALOG_QUANTITY"] > 0)
+  //{
+  if ('Y' == $arParams['USE_PRODUCT_QUANTITY'])
+  {
+  ?>
+  <?if($arResult["OFFERS_QUANTITY"]):?>
+  <span id="quantityHeader" class="item_section_name_gray"><? echo GetMessage('CATALOG_QUANTITY'); ?></span>
+  <div class="item_buttons vam" style="margin-top:5px">
+
+                <span class="item_buttons_counter_block" id="counter">
+                    <a href="javascript:void(0)" class="bx_bt_white bx_small bx_fwb" id="quantity_down">-</a>
+                    <input id="quantity" type="text" class="tac transparent_input" style="display: inline-block;width: 20px;" value="1" <?if(count($arResult["OFFERS"]) == 1):?>max-val=<?=$arResult["OFFERS"][0]["CATALOG_QUANTITY"]?><?endif?>>
+                    <a href="javascript:void(0)" class="bx_bt_white bx_small bx_fwb" id="quantity_up">+</a>
+                  <?/*a href="javascript:void(0)" class="bx_bt_white bx_small bx_fwb" id="<? echo $arItemIDs['QUANTITY_DOWN']; ?>">-</a>
+                  <input id="<? echo $arItemIDs['QUANTITY']; ?>" type="text" class="tac transparent_input" style="display: inline-block;width: 20px;" value="<? echo (isset($arResult['OFFERS']) && !empty($arResult['OFFERS'])
+                            ? 1
+                            : $arResult['CATALOG_MEASURE_RATIO']
+                        ); ?>">
+                    <a href="javascript:void(0)" class="bx_bt_white bx_small bx_fwb" id="<? echo $arItemIDs['QUANTITY_UP']; ?>">+</a*/?>
+					<span id="<? echo $arItemIDs['QUANTITY_MEASURE']; ?>"><? echo (isset($arResult['CATALOG_MEASURE_NAME']) ? $arResult['CATALOG_MEASURE_NAME'] : ''); ?></span>
+                </span>
+    <span class="item_buttons_counter_block">
+				<noindex>
+					<a class="bx_big bx_bt_blue bx_cart" id="add2basket" href="#"><span></span><? echo ('' != $arParams['MESS_BTN_ADD_TO_BASKET']
+							? $arParams['MESS_BTN_ADD_TO_BASKET']
+							: GetMessage('CT_BCE_CATALOG_ADD')
+						); ?></a>
+
+					<a id="openPopupOneClick" class="bx_big bx_bt_blue bx_cart" style="display: none"">КУПИТЬ В ОДИН КЛИК</a>
+                  <div id="popup_one_click" style="display:none">
+						<div id="popup_form_detail" style="padding: 30px;width: 300px;margin: 20% auto;font-size:16px;color: #777777; text-align:center;">
+							<a class="close_popup_one_click"></a>
+							<noindex>
+							<div class="popup_one_click_title">КУПИТЬ В ОДИН КЛИК</div>
+
+							<div id="add2basket_error" class="error_div" style="font-family:Arial;font-size:13px;text-align:left;text-transform:none;">
+								<p style="font-size: 13px;text-transform:none;">Укажите Ваше имя и телефон и с Вами свяжется наш оператор для уточнения заказа</p>
+								Ваше имя<input id="username" value="">
+								<div class="clear"></div><br/>
+								Ваш телефон<input id="userphone" value="">
+								<div class="clear"></div>
+								<p>Нажимая на кнопку Вы соглашаетесь с <a href="/personal_accept/" target="_blank">условиями обработки персональных данных</a>.</p>
+								<a href="#" id="buyOneClick" class="bx_big bx_bt_blue bx_cart">КУПИТЬ В ОДИН КЛИК</a>
+							</div>
+							</noindex>
+						</div>
+					</div>
+					<span id="noquant" style="display: none; float:none !important;"><p style="color: #e85460; font-size: 13px; font-weight: bold">&#10006; Этот товар закончился</p></span>
+				</noindex>
+
+      <?/*<a href="javascript:void(0);" class="bx_big bx_bt_blue bx_cart add2cartBtn" data-quantity=1 data-offer-id="<?=$arResult["OFFERS"][0]["ID"]?>" id="<? echo $arItemIDs['BUY_LINK']; ?>"><span></span><? echo ('' != $arParams['MESS_BTN_ADD_TO_BASKET']
+                            ? $arParams['MESS_BTN_ADD_TO_BASKET']
+                            : GetMessage('CT_BCE_CATALOG_ADD')
+                        ); ?></a>*/?>
+      <?
+					/*if ('Y' == $arParams['DISPLAY_COMPARE'])
+					{
+			?>
+      <a href="javascript:void(0)" class="bx_big bx_bt_white bx_cart" style="margin-left: 10px"><? echo ('' != $arParams['MESS_BTN_COMPARE']
+								? $arParams['MESS_BTN_COMPARE']
+								: GetMessage('CT_BCE_CATALOG_COMPARE')
+							); ?></a>
+      <?
+					}*/
+					?>
+                </span>
+
+    <div class="clear"></div>
+    <br />
+    <div class="detail_info_mess" <?if($arResult['stopPromoGifts']):?>style="float:left;max-width: 39.5%;margin-right:10px"<?endif?>><span>Скидка 25%</span><br />на каждый третий товар в корзине! <a id="openInfoPopup">Подробнее</a></div>
+  <?if($arResult['stopPromoGifts']):?>
+  <div class="detail_info_mess" style="float:left">
+    <span>Вам подарок!</span><br>
+    При покупке данного товара.<br>
+    <a id="openGiftsPopup">Выбрать</a>
+  </div>
+  <div id="giftItemPopup_js" class="popup_info" style="display:none">
+    <div class="popup_form_detail" style="padding: 30px;width: 970px;margin: 20% auto;font-size:16px;color: #777777; text-align:center;">
+      <a class="close_popup_one_click"></a>
+      <noindex>
+        <div class="error_div" style="font-family:Arial;font-size:13px;text-align:left;text-transform:none;">
+          <?foreach($arResult['stopPromoGifts'] as $giftItemId => $giftItem):?>
+          <div style="width:200px; text-align: center">
+            <div style="height: 200px">
+              <img src="<?=CPL::getResizeImage($giftItem['pic'], 200, 200)?>" alt="">
+            </div>
+            <div style="color: #000; min-height:50px">
+              <b><?=$giftItem['name']?></b>
+            </div>
+            <br>
+            <a
+                    href=""
+                    onclick="stopPromoGiftAdd(<?=$giftItemId?>);return false;"
+                    style="padding: 4px 12px; font-size: 12px; line-height: 14px; background: #000; color: #fff;"
+            >Выбрать</a>
+          </div>
+          <?endforeach?>
+        </div>
+      </noindex>
+    </div>
+  </div>
+  <?endif?>
+  <div class="clear"></div>
+  <!--							<div class="view-list" style="float:left;width:393px"><span style="color:red;font-weight: bold;font-size: 16px;">Скидка 25%</span><br />на каждый третий товар в корзине! <a id="openInfoPopup" style="cursor:pointer;">Подробнее</a></div>-->
+
+
+  <div id="popup_info" style="display:none">
+    <div id="popup_form_detail" style="padding: 30px;width: 300px;margin: 20% auto;font-size:16px;color: #777777; text-align:center;">
+      <a class="close_popup_one_click"></a>
+      <noindex>
+        <div id="add2basket_error" class="error_div" style="font-family:Arial;font-size:13px;text-align:left;text-transform:none;">
+          <p><b>В акции участвуют все товары нашего интернет магазина</b><br><br>
+            При покупке 3-х товаров, каждый третий товар с наименьшей стоимостью вы получаете со скидкой 25%.<br><br>
+            Скидка распространяется только на один товар в корзине (с наименьшей стоимостью) начиная с третьего!<br><br>
+            Скидка начисляется автоматически при наличии 3-х или более товаров в корзине.
+          </p>
+        </div>
+      </noindex>
+    </div>
+  </div>
+  <script>
+    $("#openInfoPopup").on("click", function(){
+      if($("#popup_info").css("display") == 'block')
+        $("#popup_info").css("display", "none");
+      else
+        $("#popup_info").css("display", "block");
+    });
+    $(".close_popup_one_click").on("click", function(){
+      if($("#popup_info").css("display") == 'block')
+        $("#popup_info").css("display", "none");
+    });
+  </script>
+</div>
+<?else:?>
+<div class="item_buttons vam">
+            <span class="item_buttons_counter_block" style="float:none !important;">
+                <span id="noquant" >
+					<p style="color: #e85460; font-size: 13px; font-weight: bold">&#10006; Этот товар закончился</p>
+					<div class="detail_info_mess" style="margin-top: 10px;margin-bottom: -15px;">
+					<a href="<?=$GLOBALS['CUR_CATALOG_SECTION']['UF_SECTION_CODE_PATH'];?>/" style="border-bottom: 1px dashed;" title="смотреть другие товары раздела">Посмотрите другие товары раздела</a>
+					</div>
+<br>
+					<div class="detail_info_mess" style="margin-top: 10px;margin-bottom: -15px;">
+						Другие <a href="<?=$brand['URL'].$arResult['SECTION']['CODE']?>/" style="border-bottom: 1px dashed;"><?=$arResult['SECTION']['UF_SEO'] ?: $arResult['SECTION']['NAME']?> <?=$brand['NAME']?></a>
+					</div>
+				</span>
+            </span>
+</div>
+<?endif?>
+<?
+						if ('Y' == $arParams['SHOW_MAX_QUANTITY'])
+						{
+							if (isset($arResult['OFFERS']) && !empty($arResult['OFFERS']))
+							{
+								?>
+<p id="<? echo $arItemIDs['QUANTITY_LIMIT']; ?>" style="display: none;"><? echo GetMessage('OSTATOK'); ?>: <span></span></p>
+<?
+							}
+							else
+							{
+								if ('Y' == $arResult['CATALOG_QUANTITY_TRACE'] && 'N' == $arResult['CATALOG_CAN_BUY_ZERO'])
+								{
+									?>
+<p id="<? echo $arItemIDs['QUANTITY_LIMIT']; ?>"><? echo GetMessage('OSTATOK'); ?>: <span><? $arResult['CATALOG_QUANTITY']; ?></span></p>
+<?
+								}
+							}
+						}
+					}
+					else
+					{
+						?>
+<div class="item_buttons vam" style="margin-top:5px;">
+        <span class="item_buttons_counter_block">
+            <?/*<a href="javascript:void(0);" class="bx_big bx_bt_blue bx_cart" id="<? echo $arItemIDs['BUY_LINK']; ?>"><span></span><? echo ('' != $arParams['MESS_BTN_ADD_TO_BASKET']
+                    ? $arParams['MESS_BTN_ADD_TO_BASKET']
+                    : GetMessage('CT_BCE_CATALOG_ADD')
+                ); ?></a>*/?>
+			<a class="bx_big bx_bt_blue bx_cart" id="add2basket" href="#"><span></span><? echo ('' != $arParams['MESS_BTN_ADD_TO_BASKET']
+					? $arParams['MESS_BTN_ADD_TO_BASKET']
+					: GetMessage('CT_BCE_CATALOG_ADD')
+				); ?></a>
+          <?
+			if ('Y' == $arParams['DISPLAY_COMPARE'])
+			{
+				?>
+          <a id="<? echo $arItemIDs['COMPARE_LINK']; ?>" href="javascript:void(0)" class="bx_big bx_bt_white bx_cart" style="margin-left: 10px"><? echo ('' != $arParams['MESS_BTN_COMPARE']
+						? $arParams['MESS_BTN_COMPARE']
+						: GetMessage('CT_BCE_CATALOG_COMPARE')
+					); ?></a>
+          <?
+			}
+			?>
+        </span>
+</div>
+<div class="clear"></div>
+<?
+					}?>
+
+</div>
+
+<?
+				if (!empty($arResult['DISPLAY_PROPERTIES']) || $arResult['SHOW_OFFERS_PROPS'])
+				{
+					?>
+<div class="item_info_section" style="min-height:70px;">
+  <?
+						if (!empty($arResult['DISPLAY_PROPERTIES']))
+						{
+							?>
+  <ul>
+    <?/*<li class="articul"><strong>Артикул: </strong>
+    <?=$arResult["OFFERS"][0]['PROPERTIES']['ARTICUL']['VALUE']?>
+    </li>*/?>
+    <?
+								foreach ($arResult['DISPLAY_PROPERTIES'] as &$arOneProp)
+								{
+									?>
+    <?if($arOneProp['NAME'] == "Производитель"):?>
+    <li><strong><?=$arOneProp['NAME']?>: </strong>
+      <a href="<?=$brand['URL']?>" style="border-bottom:1px dashed;" target="_blank"><?=$arOneProp['DISPLAY_VALUE']?></a>
+    </li>
+    <?elseif($arOneProp['NAME'] == "Артикул"):?>
+    <li><strong><? echo $arOneProp['NAME']; ?>: </strong> <?
+											echo (
+											is_array($arOneProp['DISPLAY_VALUE'])
+												? implode(' / ', $arOneProp['DISPLAY_VALUE'])
+												: $arOneProp['DISPLAY_VALUE']
+											);
+											?>
+    </li>
+    <?
+										$vendorCode = trim($arResult["PROPERTIES"]["vendorCode"]["VALUE"]); // удаляем пробелы по бокам
+										$vendorCode = preg_replace("/[^a-zA-ZА-Яа-я0-9\s]/iu", "", $vendorCode);
+										$vendorCode = preg_replace('/ /', '', $vendorCode); // чистим обычные пробелы
+										//$arStr =array(' ', '-', '_', '№');
+										//$vendorCode = str_replace($arStr, '', $arResult["PROPERTIES"]["vendorCode"]["VALUE"]);?>
+    <li><strong>Внутренний код: </strong> <?=str_replace($vendorCode, '', $arResult["EXTERNAL_ID"]);?>
+    </li>
+    <?else:?>
+    <li><strong><? echo $arOneProp['NAME']; ?>: </strong> <?
+											echo (
+											is_array($arOneProp['DISPLAY_VALUE'])
+												? implode(' / ', $arOneProp['DISPLAY_VALUE'])
+												: $arOneProp['DISPLAY_VALUE']
+											);
+											?>
+    </li>
+    <?endif?>
+    <?
+								}?>
+    <?
+
+							//echo "<pre>"; print_r($arResult['OFFERS']); echo "</pre>";?>
+    <?unset($arOneProp);
+								?>      <li class="bar-code-container" style="display:none;"><strong>Штрихкод: </strong><span class="bar-code"></span></li>
+    <?if($arResult["COUNTRY_VENDOR"]):?><li><strong>Страна-производитель: </strong><?=$arResult["COUNTRY_VENDOR"]?></li><?endif;?>
+    <li class="ship-date-container" style="display:none;">
+      <?//Региональность
+if ($_SERVER["HTTP_HOST"] == "www.intim-toys-shop.ru")
+{
+
+	/*$dated = date("d.m.Y");
+
+$text = "<span class='ship-date'></span>";
+      echo $text;
+
+      $first = mb_substr($text,24,8,'UTF-8');
+      //$first = substr($text,16); // Показывает 6 символов начиная с 0-ого, самого первого
+      echo $first;
+      $second = mb_substr($text,36,5,'UTF-8'); // Показывает 3 символа начиная с 8-ого
+
+      if ($dated == $first)
+      echo "Сегодня после ". $second;
+      else
+      echo "Завтра после ". $second;
+
+      */?>
+      <p style="color: #00b523; font-size: 13px; font-weight: bold">Самовывоз в Москве: Бесплатно!</p><span>Можно забрать </span> <span class="ship-date"></span>
+      <?}
+else
+{
+?>
+
+      <b>Стоимость доставки</b>
+      <div id="citySelectContainer_js"></div>
+      <style>div.search-popup-row, div.search-popup-row-active{font-size:14px;padding:4px}</style>
+      <div style="width: 413px;font-size: 11px;text-align: center;">
+        Город определен автоматически. Вы можете выбрать другой город,<br>
+        варианты выбора будут появляться по мере набора первых букв.
+      </div>
+      <br>
+      <div id="deliveryContainer_js"></div>
+      <?}?>
+    </li>
+  </ul>
+  <?
+						}
+						if ($arResult['SHOW_OFFERS_PROPS'])
+						{
+							?>
+  <ul id="<? echo $arItemIDs['DISPLAY_PROP_DIV'] ?>" style="display: none;"></ul>
+  <?
+						}
+						?>
+</div>
+<?
+				}
+				?>
+<div class="item_info_section">
+  <div class="item_buttons vam">
+    <noindex>  <a class="product_button posAbs add_to_wishlist add2favoritesBtn" data-is-catalog-section="Y" data-item-id="<?=$arResult['ID']?>">
+      В избранное
+    </a></noindex>
+  </div>
+  <div class="item_buttons vam">
+    <noindex> <a class="product_button posAbs add_to_compare add2compareBtn" data-is-catalog-section="Y" data-item-id="<?=$arResult['ID']?>">
+      В сравнение
+    </a></noindex>
+  </div>
+  <?/*<input type="checkbox" class="checked" id="compare_<?=$arItem['ID']?>" onchange="docompare(<?=$arItem['ID']?>)"/>*/?>
+</div>
+
+<?if(count($arResult["POPULAR_URL"]) > 0):?>
+<div class="item_info_section dont_forget" style="padding-top: 20px; border-top: 1px solid #D5D5D5;">
+  <b>Популярные разделы</b><br/>
+  <?foreach($arResult["POPULAR_URL"] as $arPopularUrl):?>
+  <a href="<?=$arPopularUrl[1]?>/" title="<?=$arPopularUrl[0]?>">   <?=$arPopularUrl[0]?></a><br/>
+  <?endforeach;?>
+</div>
+<?endif?>
+
+<div class="pay_system">
+  <div class="fl_l">
+    <p>Мы принимаем к оплате:</p>
+    <img src="<?=CDN_DOMAIN?>/images/visa.png" title="VISA" alt="VISA" />
+    <img src="<?=CDN_DOMAIN?>/images/mastercard.png" title="Mastercard" alt="Mastercard" />
+    <img src="<?=CDN_DOMAIN?>/images/mir.png" title="Мир" alt="Мир" />
+    <img src="<?=CDN_DOMAIN?>/images/samsung.png" title="Samsung Pay" alt="Samsung Pay" />
+    <img src="<?=CDN_DOMAIN?>/images/applepay.png" title="Apple Pay" alt="Apple Pay" />
+    <img src="<?=CDN_DOMAIN?>/images/yad.png" title="Яндекс-деньги" alt="Яндекс-деньги" /><br/>
+    и другие платежные системы
+  </div>
+  <div class="fl_r" style="margin: 18px 0 0 15px;line-height: 12px;width: 198px;">
+    <table>
+      <tr>
+        <td valign="middle"><img src="<?=CDN_DOMAIN?>/images/ssl2.jpg" width="60px" alt="Полная безопасность при оплате заказа" title="Полная безопасность при оплате заказа" /></td>
+        <td valign="middle">Полная безопасность при просмотре сайта и оплате заказа</td>
+      </tr>
+      <tr>
+        <td valign="middle"><img src="<?=CDN_DOMAIN?>/images/confid.png" width="60px" alt="100% конфиденциальность" title="100% конфиденциальность" /></td>
+        <td valign="middle">100% конфиденциальность
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="clear"></div>
+
+
+<div class="clb"></div>
+</div>
+
+<div class="bx_md">
+  <div class="item_info_section">
+    <?
+					if (isset($arResult['OFFERS']) && !empty($arResult['OFFERS']))
+					{
+						if ($arResult['OFFER_GROUP'])
+						{
+							foreach ($arResult['OFFERS'] as $arOffer)
+							{
+								if (!$arOffer['OFFER_GROUP'])
+									continue;
+								?>
+    <span id="<? echo $arItemIDs['OFFER_GROUP'].$arOffer['ID']; ?>" style="display: none;">
+<?$APPLICATION->IncludeComponent("bitrix:catalog.set.constructor",
+	".default",
+	array(
+		"IBLOCK_ID" => $arResult["OFFERS_IBLOCK"],
+		"ELEMENT_ID" => $arOffer['ID'],
+		"PRICE_CODE" => $arParams["PRICE_CODE"],
+		"BASKET_URL" => $arParams["BASKET_URL"],
+		"OFFERS_CART_PROPERTIES" => $arParams["OFFERS_CART_PROPERTIES"],
+		"CACHE_TYPE" => $arParams["CACHE_TYPE"],
+		"CACHE_TIME" => $arParams["CACHE_TIME"],
+		"CACHE_GROUPS" => $arParams["CACHE_GROUPS"],
+	),
+	$component,
+	array("HIDE_ICONS" => "Y")
+);?><?
+?>
+    </span>
+    <?
+							}
+						}
+					}
+					else
+					{
+						?><?$APPLICATION->IncludeComponent("bitrix:catalog.set.constructor",
+    ".default",
+    array(
+    "IBLOCK_ID" => $arParams["IBLOCK_ID"],
+    "ELEMENT_ID" => $arResult["ID"],
+    "PRICE_CODE" => $arParams["PRICE_CODE"],
+    "BASKET_URL" => $arParams["BASKET_URL"],
+    "CACHE_TYPE" => $arParams["CACHE_TYPE"],
+    "CACHE_TIME" => $arParams["CACHE_TIME"],
+    "CACHE_GROUPS" => $arParams["CACHE_GROUPS"],
+    ),
+    $component,
+    array("HIDE_ICONS" => "Y")
+    );?><?
+					}
+					?>
+  </div>
+</div>
+<div class="description">
+  <div id="tabs">
+    <ul>
+      <li><a href="#tabs-1">Описание</a></li>
+      <?if($arResult["PROPERTIES"]["VIDEO"]["VALUE"]):?><li><a href="#tabs-2">Видео</a></li><?endif?>
+      <li><a href="#tabs-3">Доставка</a></li>
+      <li><a href="#tabs-4">Отзывы</a></li>
+    </ul>
+    <div id="tabs-1">
+      <div class="item_info_section">
+        <?
+							if ('' != $arResult['DETAIL_TEXT'])
+							{
+								?>
+        <div class="bx_item_description">
+          <?/*<h2><? echo GetMessage('FULL_DESCRIPTION'); ?></h2>*/?>
+          <?
+									if ('html' == $arResult['DETAIL_TEXT_TYPE'])
+									{
+									?><h2><?=$arResult["NAME"]?></h2>
+          <?echo $arResult['DETAIL_TEXT'];
+									}
+									else
+									{
+									?><h2><?=$arResult["NAME"]?></h2><p><? echo $arResult['DETAIL_TEXT']; ?></p><?
+									}
+									?>
+        </div>
+        <?
+							}
+							?>
+      </div>
+    </div>
+    <?if($arResult["PROPERTIES"]["VIDEO"]["VALUE"]):?>
+    <div id="tabs-2">
+      <div class="item_info_section player_section">
+        <?$APPLICATION->IncludeComponent(
+        "bitrix:player",
+        ".default",
+        array(
+        "PLAYER_TYPE" => "auto",
+        "USE_PLAYLIST" => "N",
+        "PATH" => $arResult["PROPERTIES"]["VIDEO"]["VALUE"],
+        "WIDTH" => "800",
+        "HEIGHT" => "700",
+        "SKIN_PATH" => "/bitrix/components/bitrix/player/mediaplayer/skins",
+        "CONTROLBAR" => "bottom",
+        "WMODE" => "opaque",
+        "LOGO_POSITION" => "none",
+        "PLUGINS" => array(
+        0 => "",
+        1 => "",
+        ),
+        "WMODE_WMV" => "window",
+        "SHOW_CONTROLS" => "Y",
+        "SHOW_DIGITS" => "Y",
+        "CONTROLS_BGCOLOR" => "FFFFFF",
+        "CONTROLS_COLOR" => "0",
+        "CONTROLS_OVER_COLOR" => "0",
+        "SCREEN_COLOR" => "0",
+        "AUTOSTART" => "N",
+        "REPEAT" => "none",
+        "VOLUME" => "90",
+        "MUTE" => "N",
+        "ADVANCED_MODE_SETTINGS" => "Y",
+        "BUFFER_LENGTH" => "10",
+        "DOWNLOAD_LINK" => $arResult["PROPERTIES"]["VIDEO"]["VALUE"],
+        "DOWNLOAD_LINK_TARGET" => "_self",
+        "ALLOW_SWF" => "N",
+        "PROVIDER" => "",
+        "STREAMER" => "",
+        "PREVIEW" => "",
+        "FILE_TITLE" => "",
+        "FILE_DURATION" => "",
+        "FILE_AUTHOR" => "",
+        "FILE_DATE" => "",
+        "FILE_DESCRIPTION" => "",
+        "SKIN" => "lulu.zip",
+        "LOGO" => "",
+        "LOGO_LINK" => "",
+        "ADDITIONAL_FLASHVARS" => "",
+        "PLAYER_ID" => "",
+        "ADDITIONAL_WMVVARS" => "",
+        "COMPONENT_TEMPLATE" => ".default"
+        ),
+        false
+        );?>
+      </div>
+    </div>
+    <?endif?>
+    <div id="tabs-3">
+      <?//Региональность
+if ($_SERVER["HTTP_HOST"] == "www.intim-toys-shop.ru")
+{
+?>
+      <div id="citySelectContainer_js"></div>
+      <style>div.search-popup-row, div.search-popup-row-active{font-size:14px;padding:4px}</style>
+      <div style="width: 473px;font-size: 11px;">Город определен автоматически. Вы можете выбрать другой город,<br>варианты выбора будут появляться по мере набора первых букв.
+      </div>
+      <br>
+      <div id="deliveryContainer_js"></div>
+      <?}
+else
+{?>
+      Информацию по условиям доставки в можете прочитать в разделе <a href="/delivery/">Доставка</a>.
+      <?}?>
+
+    </div>
+    <div id="tabs-4">
+      <div class="item_info_section">
+        <h4>Отзывы</h4><p align="center">Отзывов пока нет.<br><br>Ваш отзыв будет первым.</p>
+      </div>
+
+    </div>
+  </div>
+  <div class="bx_lb">
+    <div class="tac ovh">
+      <?/*$APPLICATION->IncludeComponent(
+      "bitrix:catalog.socnets.buttons",
+      "",
+      array(
+      "URL_TO_LIKE" => $APPLICATION->GetCurPageParam(),
+      "TITLE" => "",
+      "DESCRIPTION" => "",
+      "IMAGE" => "",
+      "FB_USE" => "Y",
+      "TW_USE" => "Y",
+      "GP_USE" => "Y",
+      "VK_USE" => "Y",
+      "TW_VIA" => "",
+      "TW_HASHTAGS" => "",
+      "TW_RELATED" => ""
+      ),
+      $component,
+      array("HIDE_ICONS" => "Y")
+      );*/?>
+    </div>
+    <div class="tab-section-container">
+      <?
+					if ('Y' == $arParams['USE_COMMENTS'])
+					{
+						?>
+      <?$APPLICATION->IncludeComponent(
+      "bitrix:catalog.comments",
+      "",
+      array(
+      "ELEMENT_ID" => $arResult['ID'],
+      "ELEMENT_CODE" => "",
+      "IBLOCK_ID" => $arParams['IBLOCK_ID'],
+      "URL_TO_COMMENT" => "",
+      "WIDTH" => "",
+      "COMMENTS_COUNT" => "5",
+      "BLOG_USE" => $arParams['BLOG_USE'],
+      "FB_USE" => $arParams['FB_USE'],
+      "FB_APP_ID" => $arParams['FB_APP_ID'],
+      "VK_USE" => $arParams['VK_USE'],
+      "VK_API_ID" => $arParams['VK_API_ID'],
+      "CACHE_TYPE" => $arParams['CACHE_TYPE'],
+      "CACHE_TIME" => $arParams['CACHE_TIME'],
+      "BLOG_TITLE" => "",
+      "BLOG_URL" => "",
+      "PATH_TO_SMILE" => "/bitrix/images/blog/smile/",
+      "EMAIL_NOTIFY" => "N",
+      "AJAX_POST" => "Y",
+      "SHOW_SPAM" => "Y",
+      "SHOW_RATING" => "N",
+      "FB_TITLE" => "",
+      "FB_USER_ADMIN_ID" => "",
+      "FB_APP_ID" => $arParams['FB_APP_ID'],
+      "FB_COLORSCHEME" => "light",
+      "FB_ORDER_BY" => "reverse_time",
+      "VK_TITLE" => "",
+      ),
+      $component,
+      array("HIDE_ICONS" => "Y")
+      );?>
+      <?
+					}
+					?>
+    </div>
+  </div>
+  <div style="clear: both;"></div>
+</div>
+<div class="clb"></div>
+</div>
+<?
+if (isset($arResult['OFFERS']) && !empty($arResult['OFFERS']))
+{
+	foreach ($arResult['JS_OFFERS'] as &$arOneJS)
+	{
+		if ($arOneJS['PRICE']['DISCOUNT_VALUE'] != $arOneJS['PRICE']['VALUE'])
+		{
+			$arOneJS['PRICE']['PRINT_DISCOUNT_DIFF'] = GetMessage('ECONOMY_INFO', array('#ECONOMY#' => $arOneJS['PRICE']['PRINT_DISCOUNT_DIFF']));
+$arOneJS['PRICE']['DISCOUNT_DIFF_PERCENT'] = -$arOneJS['PRICE']['DISCOUNT_DIFF_PERCENT'];
+}
+$strProps = '';
+if ($arResult['SHOW_OFFERS_PROPS'])
+{
+if (!empty($arOneJS['DISPLAY_PROPERTIES']))
+{
+foreach ($arOneJS['DISPLAY_PROPERTIES'] as $arOneProp)
+{
+$strProps .= '<li><strong>'.$arOneProp['NAME'].'</strong> '.(
+  is_array($arOneProp['VALUE'])
+  ? implode(' / ', $arOneProp['VALUE'])
+  : $arOneProp['VALUE']
+  ).'</li>';
+}
+}
+}
+$arOneJS['DISPLAY_PROPERTIES'] = $strProps;
+}
+if (isset($arOneJS))
+unset($arOneJS);
+$arJSParams = array(
+'PRODUCT_TYPE' => $arResult['CATALOG_TYPE'],
+'SHOW_QUANTITY' => $arParams['USE_PRODUCT_QUANTITY'],
+'SHOW_ADD_BASKET_BTN' => true,
+'SHOW_BUY_BTN' => false,
+'SHOW_DISCOUNT_PERCENT' => ('Y' == $arParams['SHOW_DISCOUNT_PERCENT']),
+'SHOW_OLD_PRICE' => ('Y' == $arParams['SHOW_OLD_PRICE']),
+'DISPLAY_COMPARE' => ('Y' == $arParams['DISPLAY_COMPARE']),
+'SHOW_SKU_PROPS' => $arResult['SHOW_OFFERS_PROPS'],
+'OFFER_GROUP' => $arResult['OFFER_GROUP'],
+'VISUAL' => array(
+'BIG_SLIDER_ID' => $arItemIDs['ID'],
+'ID' => $arItemIDs['ID'],
+'PICT_ID' => $arItemIDs['PICT'],
+'QUANTITY_ID' => $arItemIDs['QUANTITY'],
+'QUANTITY_UP_ID' => $arItemIDs['QUANTITY_UP'],
+'QUANTITY_DOWN_ID' => $arItemIDs['QUANTITY_DOWN'],
+'QUANTITY_MEASURE' => $arItemIDs['QUANTITY_MEASURE'],
+'QUANTITY_LIMIT' => $arItemIDs['QUANTITY_LIMIT'],
+'PRICE_ID' => $arItemIDs['PRICE'],
+'OLD_PRICE_ID' => $arItemIDs['OLD_PRICE'],
+'DISCOUNT_VALUE_ID' => $arItemIDs['DISCOUNT_PRICE'],
+'DISCOUNT_PERC_ID' => $arItemIDs['DISCOUNT_PICT_ID'],
+'NAME_ID' => $arItemIDs['NAME'],
+'TREE_ID' => $arItemIDs['PROP_DIV'],
+'TREE_ITEM_ID' => $arItemIDs['PROP'],
+'SLIDER_CONT_OF_ID' => $arItemIDs['SLIDER_CONT_OF_ID'],
+'SLIDER_LIST_OF_ID' => $arItemIDs['SLIDER_LIST_OF_ID'],
+'SLIDER_LEFT_OF_ID' => $arItemIDs['SLIDER_LEFT_OF_ID'],
+'SLIDER_RIGHT_OF_ID' => $arItemIDs['SLIDER_RIGHT_OF_ID'],
+'BUY_ID' => $arItemIDs['BUY_LINK'],
+'ADD_BASKET_ID' => $arItemIDs['ADD_BASKET_LINK'],
+'COMPARE_LINK_ID' => $arItemIDs['COMPARE_LINK'],
+'DISPLAY_PROP_DIV' => $arItemIDs['DISPLAY_PROP_DIV'],
+'OFFER_GROUP' => $arItemIDs['OFFER_GROUP'],
+'ZOOM_DIV' => $arItemIDs['ZOOM_DIV'],
+'ZOOM_PICT' => $arItemIDs['ZOOM_PICT']
+),
+'DEFAULT_PICTURE' => array(
+'PREVIEW_PICTURE' => $arResult['PREVIEW_PICTURE'],
+'DETAIL_PICTURE' => $arResult['DETAIL_PICTURE']
+),
+'OFFERS' => $arResult['JS_OFFERS'],
+'OFFER_SELECTED' => $arResult['OFFERS_SELECTED'],
+'TREE_PROPS' => $arSkuProps,
+'AJAX_PATH' => POST_FORM_ACTION_URI,
+'MESS' => array(
+'ECONOMY_INFO' => GetMessage('ECONOMY_INFO')
+)
+);
+}
+else
+{
+$arJSParams = array(
+'PRODUCT_TYPE' => $arResult['CATALOG_TYPE'],
+'SHOW_QUANTITY' => $arParams['USE_PRODUCT_QUANTITY'],
+'SHOW_ADD_BASKET_BTN' => true,
+'SHOW_BUY_BTN' => false,
+'SHOW_DISCOUNT_PERCENT' => ('Y' == $arParams['SHOW_DISCOUNT_PERCENT']),
+'SHOW_OLD_PRICE' => ('Y' == $arParams['SHOW_OLD_PRICE']),
+'DISPLAY_COMPARE' => ('Y' == $arParams['DISPLAY_COMPARE']),
+'VISUAL' => array(
+'BIG_SLIDER_ID' => $arItemIDs['ID'],
+'ID' => $arItemIDs['ID'],
+'PICT_ID' => $arItemIDs['PICT'],
+'QUANTITY_ID' => $arItemIDs['QUANTITY'],
+'QUANTITY_UP_ID' => $arItemIDs['QUANTITY_UP'],
+'QUANTITY_DOWN_ID' => $arItemIDs['QUANTITY_DOWN'],
+'PRICE_ID' => $arItemIDs['PRICE'],
+'OLD_PRICE_ID' => $arItemIDs['OLD_PRICE'],
+'DISCOUNT_VALUE_ID' => $arItemIDs['DISCOUNT_PRICE'],
+'DISCOUNT_PERC_ID' => $arItemIDs['DISCOUNT_PICT_ID'],
+'NAME_ID' => $arItemIDs['NAME'],
+'TREE_ID' => $arItemIDs['PROP_DIV'],
+'TREE_ITEM_ID' => $arItemIDs['PROP'],
+'SLIDER_CONT_OF_ID' => $arItemIDs['SLIDER_CONT_OF_ID'],
+'SLIDER_LIST_OF_ID' => $arItemIDs['SLIDER_LIST_OF_ID'],
+'SLIDER_LEFT_OF_ID' => $arItemIDs['SLIDER_LEFT_OF_ID'],
+'SLIDER_RIGHT_OF_ID' => $arItemIDs['SLIDER_RIGHT_OF_ID'],
+'BUY_ID' => $arItemIDs['BUY_LINK'],
+'ADD_BASKET_ID' => $arItemIDs['ADD_BASKET_LINK'],
+'COMPARE_LINK_ID' => $arItemIDs['COMPARE_LINK'],
+),
+'PRODUCT' => array(
+'ID' => $arResult['ID'],
+'PICT' => $arResult['DETAIL_PICTURE'],
+'NAME' => $arResult['~NAME'],
+'SUBSCRIPTION' => true,
+'PRICE' => $arResult['MIN_PRICE'],
+'CAN_BUY' => $arResult['CAN_BUY'],
+'CHECK_QUANTITY' => $arResult['CHECK_QUANTITY'],
+'QUANTITY_FLOAT' => is_double($arResult['CATALOG_MEASURE_RATIO']),
+'MAX_QUANTITY' => $arResult['CATALOG_QUANTITY'],
+'STEP_QUANTITY' => $arResult['CATALOG_MEASURE_RATIO'],
+'BUY_URL' => $arResult['~BUY_URL'],
+),
+'AJAX_PATH' => POST_FORM_ACTION_URI,
+'MESS' => array()
+);
+}
+?>
+
+<script type="text/javascript">
+  var <? echo $strObName; ?> = new JCCatalogElement(<? echo CUtil::PhpToJSObject($arJSParams, false, true); ?>);
+</script>
+<script type="text/javascript">
+  $(document).ready(function(){
+    /*$("#offer_sizes").change(function(){
+     var $offer_id = $("#offer_sizes option:selected" ).val();
+     //$(".add2cartBtn").attr("data-offer-id", $offer_id);
+     $(".add2cartBtn").data().offerId = $offer_id;
+     //console.log($("#offer_sizes option:selected" ).val());
+     });*/
+
+    $("#quantity_up").click(function(){
+      if(+$("#quantity").attr('max-val') > +$("#quantity").val()){
+        var $quant = +$("#quantity").val() + 1;
+        console.log($quant);
+        $("#quantity").val($quant);
+        $("#quantity").attr("value", $quant);
+        //$(".add2cartBtn").data().quantity = $quant;
+      }
+    });
+
+    $("#quantity_down").click(function(){
+      if(+$("#quantity").val() > 1){
+        var $quant = +$("#quantity").val() - 1;
+        console.log($quant);
+        $("#quantity").val($quant);
+        $("#quantity").attr("value", $quant);
+        //$(".add2cartBtn").data().quantity = $quant;
+      }
+    });
+
+    /*$("#quantity").change(function(){
+     $(".add2cartBtn").data().quantity = $(this).value;
+     });*/
+  });
+</script>
+<script>
+  var offerCodes = new Object();
+  var offerDate = new Object();
+  var offerPrices = new Object();
+  var offerOldPrices = new Object();
+  var offerPricesInt = new Object();
+  var offerQuantityDetail = new Object();
+
+  <?if(count($arResult["OFFERS"]) == 1):?>
+  var currentOfferId = <?=intval(reset($arResult['OFFERS'])["ID"])?>;
+  <?elseif($arResult['SELECTED_OFFER']):?>
+  var currentOfferId = <?=intval($arResult['SELECTED_OFFER']["ID"])?>;
+  <?else:?>
+  var currentOfferId = 0;
+  offerQuantityDetail[currentOfferId] = 0;
+  <?endif?>
+  <?
+          foreach ( $arResult["OFFERS"] as $arOffer ) {
+            ?>
+    offerCodes["<?=$arOffer["ID"]?>"] = "<?=$arOffer["PROPERTIES"]["barcode"]["VALUE"]?>";
+    offerDate["<?=$arOffer["ID"]?>"] = "<?=$arOffer["PROPERTIES"]["ShippingDate"]["VALUE"]?>";
+    offerPrices["<?=$arOffer["ID"]?>"] = "<?=$arOffer["PRICES"][CATALOG_PRICE_CODE]["PRINT_DISCOUNT_VALUE"]?>";
+    <?if ( intval($arOffer["PROPERTIES"]["OLD_PRICE"]["VALUE"]) > 0) {?>
+      offerOldPrices["<?=$arOffer["ID"]?>"] = "<?=formatPrice($arOffer["PROPERTIES"]["OLD_PRICE"]["VALUE"])?>";
+      <?}?>
+    offerPricesInt["<?=$arOffer["ID"]?>"] = "<?=$arOffer["PRICES"][CATALOG_PRICE_CODE]["DISCOUNT_VALUE"]?>";
+    offerQuantityDetail["<?=$arOffer["ID"]?>"] = <?=intval($arOffer["CATALOG_QUANTITY"])?>;
+    //currentOfferId = "<?=$arOffer["ID"]?>";
+    <?
+  }
+          ?>
+  <?if(count($arResult["OFFERS"]) == 1):?>
+  if ( currentOfferId > 0 && offerCodes[currentOfferId] != "") {
+    $(".bar-code").text(offerCodes[currentOfferId]);
+    $(".bar-code-container").show();
+  }
+  if ( currentOfferId > 0 && offerDate[currentOfferId] != "") {
+    $(".ship-date").text(offerDate[currentOfferId]);
+    $(".ship-date-container").show();
+  }
+  <?endif?>
+
+  function offerSelectedDetail() {
+    if ( currentOfferId > 0 && offerCodes[currentOfferId] != "") {
+      $(".bar-code").text(offerCodes[currentOfferId]);
+      $(".bar-code-container").show();
+    } else {
+      $(".bar-code").text("");
+      $(".bar-code-container").hide();
+    }
+    if ( currentOfferId > 0 && offerDate[currentOfferId] != "") {
+      $(".ship-date").text(offerDate[currentOfferId]);
+      $(".ship-date-container").show();
+    } else {
+      $(".ship-date").text("");
+      $(".ship-date-container").hide();
+    }
+
+    if ( offerQuantityDetail[currentOfferId] > 0 ) {
+      <?//Serg?>
+      <?//В селект выбора количества вставляем опшены в зависимости от кол-ва?>
+      //var optionsCount = offerQuantityDetail[currentOfferId] < 10 ? offerQuantityDetail[currentOfferId] : 10;
+      /*var optionsCount = offerQuantityDetail[currentOfferId]
+       var options = '';
+       for(var i = 1; i <= optionsCount; i++)
+       {
+       options += '<option value="' + i + '">' + i + '</option>';
+       }
+       $("#quantity").html(options);*/
+      $("#quantity").attr('max-val', offerQuantityDetail[currentOfferId]);
+      $("#quantity").val(1);
+      //$("#quantityDiv").show();
+      if($(".tab_detail_main .sizes_tab a").hasClass("selected") && $(".tab_detail_main .colors_tab a").hasClass("selected")){
+        $("#add2basket").css("display", "inline-block");
+        $("#openPopupOneClick").css("display", "inline-block");
+        $("#quantityHeader").css("display", "inline-block");
+        $("#noquant").css("display", "none");
+        $("#counter").css("display", "block");
+      }
+      $("#add2basket").removeClass("disabled");
+      $("#openPopupOneClick").removeClass("disabled");
+    } else {
+      $("#quantity").html("");
+      $("#quantityDiv").hide();
+      if($(".tab_detail_main .sizes_tab a").hasClass("selected") && $(".tab_detail_main .colors_tab a").hasClass("selected")){
+        $("#add2basket").css("display", "none");
+        $("#openPopupOneClick").css("display", "none");
+        $("#quantityHeader").css("display", "none");
+        $("#noquant").css("display", "block");
+        $("#counter").css("display", "none");
+      }
+      //$(".tab_detail_main .sizes_tab a.selected").addClass("less");
+      //$(".tab_detail_main .colors_tab a.selected").addClass("less");
+      $("#add2basket").addClass("disabled");
+      $("#openPopupOneClick").addClass("disabled");
+    }
+  }
+
+  $("#openPopupOneClick").on("click", function(){
+    if($("#popup_one_click").css("display") == 'block')
+      $("#popup_one_click").css("display", "none");
+    else
+      $("#popup_one_click").css("display", "block");
+  });
+
+  $(".close_popup_one_click").on("click", function(){
+    if($("#popup_one_click").css("display") == 'block')
+      $("#popup_one_click").css("display", "none");
+  });
+
+  /*$(function() {
+   if ( $(".tab_detail_main .sizes_tab a").length ) {
+   $("#add2basket").addClass("disabled");
+   if ( $(".tab_detail_main .sizes_tab a:not(.less)").length == 1 ) {
+   $(".tab_detail_main .sizes_tab a:not(.less)").trigger("click");
+   }
+   } else if ( $(".tab_detail_main .colors_tab").length ) {
+   $("#add2basket").addClass("disabled");
+   if ( $(".tab_detail_main .colors_tab a:not(.less)").length == 1 ) {
+   $(".tab_detail_main .colors_tab a:not(.less)").trigger("click");
+   }
+   } else {
+   offerSelectedDetail();
+   }
+   });*/
+</script>
+
+
+<script type="text/javascript">
+  <?/*obCatalogSection = {
+			items: {},
+			init: function(){
+				var self = this;
+				$('.bx_rt').each(function(){
+					$this = $(this);
+					//$this = $('.bx_rt');
+					itemId = $this.data().itemId;
+					item = self.items[itemId] = {
+						$selector: $this
+					};
+					//console.log(itemId);
+					self.initSizeChange(item);
+				});
+			},
+			initSizeChange: function(item) {
+				if(!item.$selector.length)
+					return false;
+				console.log($selector);
+				item.id = item.$selector.data().itemId;
+				item.offers = arCatalogOffers;
+				item.$add2cartBtn = item.$selector.find('.add2cartBtn');
+				item.$size_select = item.$selector.find('#offer_sizes');
+				item.$oldPrice = item.$selector.find('.item_old_price');
+				item.$price = item.$selector.find('.item_current_price');
+				//item.$quant = item.$selector.find('.articul');
+				//console.log(item);
+				if(!item.$size_select.length || !item.$price.length)
+					return false;
+
+				item.$size_select.change(function(){
+					console.log(5678);
+					offerId = this.val();
+					console.log(offerId);
+					if(typeof item.offers[offerId] !== 'undefined') {
+						item.$oldPrice.html(item.offers[offerId]['old_price_formatted']);
+						item.$price.html(item.offers[offerId]['price_formatted']);
+						//item.$quant.html('<strong>Артикул: </strong>' + item.offers[offerId]['articul']);
+					}
+					item.$add2cartBtn.data().offerId = offerId;
+				});
+			}
+		};
+		$(function(){
+			obCatalogSection.init();
+		});*/?>
+</script>
+
+
+
+<script type="text/javascript" >
+  $(document).ready(function(){
+    $("#userphone").inputmask('phone');
+
+    $("a[rel^='prettyPhoto']").prettyPhoto(
+            {
+              animation_speed:'normal',
+              theme:'pp_default',
+              slideshow:3000,
+              autoplay_slideshow: false,
+              overlay_gallery: true,
+              overlay_gallery_max: 30,
+              social_tools: false,
+              show_title: true
+            }
+    );
+
+    arCatalogItemsDetail = {};
+    arCatalogItemsDetail[<?=$arResult["ID"]?>] = {};
+    arCatalogItemsDetail[<?=$arResult["ID"]?>]['isInCompare'] = <?if(isset($_SESSION["CATALOG_COMPARE_LIST"][CATALOG_IBLOCK_ID]["ITEMS"][$arResult['ID']])):?>true<?else:?>false<?endif?>;
+    arCatalogItemsDetail[<?=$arResult["ID"]?>]['isInFavorites'] = <?if(in_array($arResult["ID"], $arFavorites)):?>true<?else:?>false<?endif?>;
+    //console.log(arCatalogItems);
+
+    var $this = $(".bx_rt"),
+            itemId = $(".bx_rt").data().itemId,
+            item = arCatalogItemsDetail[itemId];
+    //item.$selector = $this;
+    //console.log(arCatalogItemsDetail);
+    if(item.isInCompare)
+      $(".bx_rt").find('.add2compareBtn').addClass('added').removeClass("add2compareBtn").attr("href", "/compare.php").html("Посмотреть в списке Сравнения");
+    if(item.isInFavorites)
+      $(".bx_rt").find('.add2favoritesBtn').addClass('added').removeClass("add2favoritesBtn").attr("href", "/wishlist.php").html("Посмотреть в Избранном");
+  });
+
+
+
+  <?/*$('.radioColorInput').click(function() {
+			if ($(this).hasClass('disabled')) {
+				return false;
+			}
+			$(this).closest('.bx_rt').find('.radioColorInput').removeClass('checked');
+			$(this).addClass('checked');
+		});
+
+		$('.sizeCheckBox').click(function() {
+			if ($(this).hasClass('disabled')) {
+				return false;
+			}
+			$(this).closest('.bx_rt').find('.sizeCheckBox').removeClass('checked');
+			$(this).addClass('checked');
+		});*/?>
+
+
+
+</script>
+
+<?/*$arTopSection = CIBlockSection::GetList(
+    array(),
+    array(
+        'IBLOCK_ID' => TOP_MENU_IBLOCK_ID,
+'ACTIVE' => 'Y',
+'GLOBAL_ACTIVE' => 'Y',
+'CODE' => $_REQUEST["TOP_MENU_SECTION_CODE"],
+),
+false,
+array('ID'),
+array('nPageSize' => 1)
+)->GetNext(false, false);
+
+if(!$arTopSection["ID"]){
+//$this->AbortResultCache();
+ShowError(GetMessage("CATALOG_ELEMENT_NOT_FOUND"));
+@define("ERROR_404", "Y");
+//if($arParams["SET_STATUS_404"]==="Y"){
+CHTTP::SetStatus("404 Not Found");
+//LocalRedirect("/404.php", "404 Not Found");
+//}
+//CHTTP::SetStatus("404 Not Found");
+global $APPLICATION;
+$APPLICATION->RestartBuffer();
+CHTTP::SetStatus("404 Not Found");
+include($_SERVER["DOCUMENT_ROOT"].SITE_TEMPLATE_PATH."/header.php");
+include($_SERVER['DOCUMENT_ROOT'].'/404.php');
+include($_SERVER["DOCUMENT_ROOT"].SITE_TEMPLATE_PATH."/footer.php");
+die();
+//LocalRedirect("/404.php", "404 Not Found");
+
+}*/?>
+<?$priceValidUntil = date("Y-m-d", strtotime(" +2 months"));?>
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": "<?=$arResult['NAME']?>",
+    "image": "https://prime.gcdn.co<?=$arResult['MORE_PHOTO'][0]['SRC']?>",
+    "description": "<?=$arResult['DETAIL_TEXT']?>",
+    "mpn": "<?=$arResult['PROPERTIES']['vendorCode']['VALUE']?>",
+    "sku": "<?=$arResult['ID']?>",
+    "brand": {
+      "@type": "https://schema.org/Brand",
+      "name": "<?=$arResult['PROPERTIES']['vendor']['VALUE']?>"
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": "https://<?=$_SERVER["HTTP_HOST"].''.$arResult["PROPERTIES"]["DETAIL_PAGE_URL"]["VALUE"]?>",
+      "priceCurrency": "RUB",
+      "price": "<?=$arResult["MIN_PRICE"]["DISCOUNT_VALUE"]?>",
+      "priceValidUntil": "<?=$priceValidUntil?>",
+      "itemCondition": "https://schema.org/NewCondition",
+      "availability": "https://schema.org/InStock",
+      "seller": {
+        "@type": "Organization",
+        "name": "INTIM TOYS"
+      }
+    }
+  }
+</script>
